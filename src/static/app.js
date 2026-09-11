@@ -3,11 +3,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const loginForm = document.getElementById("login-form");
+  const loginMessage = document.getElementById("login-message");
+  let authorization;
+
+  function requestOptions(options = {}) {
+    return {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: authorization,
+      },
+    };
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
-      const response = await fetch("/activities");
+      const response = await fetch("/activities", requestOptions());
+      if (!response.ok) {
+        throw new Error("Authentication required");
+      }
       const activities = await response.json();
 
       // Clear loading message
@@ -18,12 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
-        const spotsLeft =
-          details.max_participants - details.participants.length;
+        const spotsLeft = details.remaining_spots;
 
         // Create participants HTML with delete icons instead of bullet points
         const participantsHTML =
-          details.participants.length > 0
+          details.can_manage_enrollments && details.participants.length > 0
             ? `<div class="participants-section">
               <h5>Participants:</h5>
               <ul class="participants-list">
@@ -35,7 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   .join("")}
               </ul>
             </div>`
-            : `<p><em>No participants yet</em></p>`;
+            : details.can_manage_enrollments
+              ? `<p><em>No participants yet</em></p>`
+              : `<p><em>Participant details are restricted.</em></p>`;
 
         activityCard.innerHTML = `
           <h4>${name}</h4>
@@ -78,9 +95,9 @@ document.addEventListener("DOMContentLoaded", () => {
         `/activities/${encodeURIComponent(
           activity
         )}/unregister?email=${encodeURIComponent(email)}`,
-        {
+        requestOptions({
           method: "DELETE",
-        }
+        })
       );
 
       const result = await response.json();
@@ -114,17 +131,14 @@ document.addEventListener("DOMContentLoaded", () => {
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const email = document.getElementById("email").value;
     const activity = document.getElementById("activity").value;
 
     try {
       const response = await fetch(
-        `/activities/${encodeURIComponent(
-          activity
-        )}/signup?email=${encodeURIComponent(email)}`,
-        {
+        `/activities/${encodeURIComponent(activity)}/signup`,
+        requestOptions({
           method: "POST",
-        }
+        })
       );
 
       const result = await response.json();
@@ -155,6 +169,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initialize app
-  fetchActivities();
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    authorization = `Basic ${btoa(`${username}:${password}`)}`;
+
+    try {
+      const response = await fetch("/me", requestOptions());
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to sign in");
+      }
+      loginMessage.textContent = `Signed in as ${result.role}.`;
+      loginMessage.className = "success";
+      await fetchActivities();
+    } catch (error) {
+      authorization = undefined;
+      loginMessage.textContent = error.message;
+      loginMessage.className = "error";
+    }
+    loginMessage.classList.remove("hidden");
+  });
+
+  activitiesList.innerHTML = "<p>Sign in to view activities.</p>";
 });

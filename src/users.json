@@ -1,0 +1,19 @@
+{
+  "student@mergington.edu": {
+    "password_hash": "0c706cd9e9c31663612230ff8d74850ca2efdce103dedc77cdd66bf4cfd192ce",
+    "role": "student"
+  },
+  "parent@mergington.edu": {
+    "password_hash": "3f650137fe217270ad38b496da70838695e4595d64298ce28e0c86f2c39c3c1e",
+    "role": "parent",
+    "linked_students": ["student@mergington.edu"]
+  },
+  "teacher@mergington.edu": {
+    "password_hash": "0acccbba3a8265e79e018127c2a3bc9cad528e542787f810a002c27bc7f81811",
+    "role": "teacher"
+  },
+  "admin@mergington.edu": {
+    "password_hash": "713bfda78870bf9d1b261f565286f85e97ee614efe5f0faf7c34e7ca4f65baca",
+    "role": "admin"
+  }
+}
